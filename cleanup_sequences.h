@@ -12,6 +12,9 @@ typedef struct config {
   string blast_db;
   string blast_type;
   string format;
+  string fastq;
+  string clean;
+  string filter;
 
 } Config;
 

@@ -15,6 +15,7 @@ int main(int argc,char **argv) {
   if (argc < 2)
   {
     cout << "Usage: " << argv[0] << " [INFO FILE]" << "\n";
+
     return EXIT_FAILURE;
   }
 
@@ -25,23 +26,23 @@ int main(int argc,char **argv) {
   Config c = loadConfig(argv[1]);
   unordered_set<string> to_remove = loadCSV(c);
 
-  ifstream in(c.input + "." + c.format, ios::in);
-  ofstream out_filter(c.input + ".filter_pident-" + to_string(c.pident) + "_qcovs-" + to_string(c.qcovs) + "." + c.format);
-  ofstream out_clean(c.input  + ".nohits-" + c.blast_type + "-" + c.blast_db + "." + c.format);
+  ifstream in_fastq(c.fastq, ios::in);
+  ofstream out_filter(c.filter);
+  ofstream out_clean(c.clean);
 
-  if(!in.is_open())
+  if(!in_fastq.is_open())
   {
     return EXIT_FAILURE;
   }
 
   cout << "\nUsing " << c.input << " (" << c.format << ") and " << c.t6 << "\n\nProcessing..." << "\n";
 
-  while(!in.eof())
+  while(!in_fastq.eof())
   {
-    if (!getline(in, f.name,'\n')) break;
-    if (!getline(in, f.sequence,'\n')) break;
-    if (!getline(in, f.info,'\n')) break;
-    if (!getline(in, f.quality,'\n')) break;
+    if (!getline(in_fastq, f.name,'\n')) break;
+    if (!getline(in_fastq, f.sequence,'\n')) break;
+    if (!getline(in_fastq, f.info,'\n')) break;
+    if (!getline(in_fastq, f.quality,'\n')) break;
 
     istringstream iss(f.name);
 
@@ -55,6 +56,7 @@ int main(int argc,char **argv) {
         out_filter << f.sequence << "\n";
         out_filter << f.info << "\n";
         out_filter << f.quality << "\n";
+
         count++;
     }
     else
@@ -66,9 +68,10 @@ int main(int argc,char **argv) {
     }
   }
 
-  cout << "Found: " << count << "\n";
+  cout << "\nCheck the results in " << c.clean << "\n";
+  cout << "Removed Sequences (" << count << ") in " << c.filter << "\n\n";
 
-  in.close();
+  in_fastq.close();
   out_filter.close();
   out_clean.close();
 
@@ -92,6 +95,9 @@ Config loadConfig(string filename) {
   c.blast_db   = root["blast-db"].asString();
   c.blast_type = root["blast-type"].asString();
   c.format     = c.input.substr(c.input.find_last_of(".") + 1);
+  c.fastq      = c.input;
+  c.clean      = c.input  + ".nohits-" + c.blast_type + "-" + c.blast_db + "." + c.format;
+  c.filter     = c.input + ".filter_pident-" + to_string(c.pident) + "_qcovs-" + to_string(c.qcovs) + "." + c.format;
 
   c.input.erase(c.input.find_last_of("."));
 
