@@ -8,34 +8,15 @@
 
 #include <jsoncpp/json/json.h>
 #include "csv.h"
-
-using namespace std;
-using namespace io;
-using namespace tr1;
-
-typedef struct config {
-  string fields;
-  float pident;
-  float qcovs;
-  string t6;
-  string input;
-  string gi_type;
-  string blast_db;
-  string blast_type;
-
-} Config;
-
-typedef struct fastq {
-  string name;
-  string sequence;
-  string info;
-  string quality;
-} FastQ;
-
-Config loadConfig(string filename);
-unordered_set<string> loadCSV(Config c);
+#include "cleanup_sequences.h"
 
 int main(int argc,char **argv) {
+
+  if (argc < 2)
+  {
+    cout << "Usage: " << argv[0] << " [INFO FILE]" << "\n";
+    return EXIT_FAILURE;
+  }
 
   string header;
   int count = 0;
@@ -44,14 +25,18 @@ int main(int argc,char **argv) {
   Config c = loadConfig(argv[1]);
   unordered_set<string> to_remove = loadCSV(c);
 
-  ifstream in(c.input, ios::in);
+  string filename = c.input.erase(c.input.find_last_of("."));
+
+  ifstream in(filename + ".fastq", ios::in);
+  ofstream out_filter(filename + ".filter_pident-" + to_string(c.pident) + "_qcovs-" + to_string(c.qcovs) + ".fastq");
+  ofstream out_clean(filename  + ".nohits-" + c.blast_type + "-" + c.blast_db + ".fastq");
 
   if(!in.is_open())
   {
     return EXIT_FAILURE;
   }
 
-  cout << "Using " << c.input << " and " << c.t6 << endl;
+  cout << "\nUsing " << c.input << " and " << c.t6 << "\nProcessing..." << "\n";
 
   while(!in.eof())
   {
@@ -68,20 +53,28 @@ int main(int argc,char **argv) {
 
     if (got != to_remove.end())
     {
-        cout << "@" << f.name << endl;
-        cout << f.sequence << endl;
-        cout << f.info << endl;
-        cout << f.quality << endl;
-
+        out_filter << "@" << f.name << "\n";
+        out_filter << f.sequence << "\n";
+        out_filter << f.info << "\n";
+        out_filter << f.quality << "\n";
         count++;
+    }
+    else
+    {
+        out_clean << "@" << f.name << "\n";
+        out_clean << f.sequence << "\n";
+        out_clean << f.info << "\n";
+        out_clean << f.quality << "\n";
     }
   }
 
+  cout << "Found: " << count << "\n";
+
   in.close();
+  out_filter.close();
+  out_clean.close();
 
-  cout << "Found: " << count << endl;
-
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 Config loadConfig(string filename) {
