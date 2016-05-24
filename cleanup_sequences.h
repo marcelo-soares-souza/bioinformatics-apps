@@ -11,6 +11,7 @@ typedef struct config {
   string gi_type;
   string blast_db;
   string blast_type;
+  string format;
 
 } Config;
 
@@ -19,8 +20,8 @@ typedef struct fastq {
   string sequence;
   string info;
   string quality;
+
 } FastQ;
 
 Config loadConfig(string filename);
 unordered_set<string> loadCSV(Config c);
-

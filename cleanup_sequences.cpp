@@ -18,32 +18,30 @@ int main(int argc,char **argv) {
     return EXIT_FAILURE;
   }
 
-  string header;
+  string header = "";
   int count = 0;
   FastQ f;
 
   Config c = loadConfig(argv[1]);
   unordered_set<string> to_remove = loadCSV(c);
 
-  string filename = c.input.erase(c.input.find_last_of("."));
-
-  ifstream in(filename + ".fastq", ios::in);
-  ofstream out_filter(filename + ".filter_pident-" + to_string(c.pident) + "_qcovs-" + to_string(c.qcovs) + ".fastq");
-  ofstream out_clean(filename  + ".nohits-" + c.blast_type + "-" + c.blast_db + ".fastq");
+  ifstream in(c.input + "." + c.format, ios::in);
+  ofstream out_filter(c.input + ".filter_pident-" + to_string(c.pident) + "_qcovs-" + to_string(c.qcovs) + "." + c.format);
+  ofstream out_clean(c.input  + ".nohits-" + c.blast_type + "-" + c.blast_db + "." + c.format);
 
   if(!in.is_open())
   {
     return EXIT_FAILURE;
   }
 
-  cout << "\nUsing " << c.input << " and " << c.t6 << "\nProcessing..." << "\n";
+  cout << "\nUsing " << c.input << " (" << c.format << ") and " << c.t6 << "\n\nProcessing..." << "\n";
 
   while(!in.eof())
   {
-    if(!getline(in, f.name,'\n')) break;
-    if(!getline(in, f.sequence,'\n')) break;
-    if(!getline(in, f.info,'\n')) break;
-    if(!getline(in, f.quality,'\n')) break;
+    if (!getline(in, f.name,'\n')) break;
+    if (!getline(in, f.sequence,'\n')) break;
+    if (!getline(in, f.info,'\n')) break;
+    if (!getline(in, f.quality,'\n')) break;
 
     istringstream iss(f.name);
 
@@ -93,6 +91,9 @@ Config loadConfig(string filename) {
   c.gi_type    = root["gi-type"].asString();
   c.blast_db   = root["blast-db"].asString();
   c.blast_type = root["blast-type"].asString();
+  c.format     = c.input.substr(c.input.find_last_of(".") + 1);
+
+  c.input.erase(c.input.find_last_of("."));
 
   return c;
 }
