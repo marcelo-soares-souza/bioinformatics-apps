@@ -1,3 +1,6 @@
+// (C) 2016 Marcelo Soares Souza <marcelo.soares@colaborador.embrapa.br>
+// This program is licensed under a LGPLv3 License.
+
 using namespace std;
 using namespace io;
 using namespace tr1;
