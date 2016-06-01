@@ -10,6 +10,9 @@
 #include "csv.h"
 #include "cleanup_sequences.h"
 
+// const int THRESHOLD = 131072;
+const int THRESHOLD = 16777216;
+
 int main(int argc,char **argv) {
 
   if (argc < 2)
@@ -37,6 +40,12 @@ int main(int argc,char **argv) {
 
   cout << "\nUsing " << c.input << " (" << c.format << ") and " << c.t6 << "\n\nProcessing..." << "\n";
 
+  std::string buffer_filter;
+  buffer_filter.reserve(THRESHOLD);
+
+  std::string buffer_clean;
+  buffer_clean.reserve(THRESHOLD);
+
   while(!in_fastq.eof())
   {
     if (!getline(in_fastq, f.name,'\n')) break;
@@ -52,21 +61,48 @@ int main(int argc,char **argv) {
 
     if (got != to_remove.end())
     {
+      if (buffer_filter.length() + 1 >= THRESHOLD) {
+        out_filter << buffer_filter;
+        buffer_filter.resize(0);
+      }
+
+      buffer_filter.append("@" + f.name + "\n");
+      buffer_filter.append(f.sequence + "\n");
+      buffer_filter.append(f.info + "\n");
+      buffer_filter.append(f.quality + "\n");
+
+      /*
         out_filter << "@" << f.name << "\n";
         out_filter << f.sequence << "\n";
         out_filter << f.info << "\n";
         out_filter << f.quality << "\n";
+      */
 
-        count++;
+      count++;
     }
     else
     {
+      if (buffer_clean.length() + 1 >= THRESHOLD) {
+        out_clean << buffer_clean;
+        buffer_clean.resize(0);
+      }
+
+      buffer_clean.append("@" + f.name + "\n");
+      buffer_clean.append(f.sequence + "\n");
+      buffer_clean.append(f.info + "\n");
+      buffer_clean.append(f.quality + "\n");
+
+      /*
         out_clean << "@" << f.name << "\n";
         out_clean << f.sequence << "\n";
         out_clean << f.info << "\n";
         out_clean << f.quality << "\n";
+      */
     }
   }
+
+  out_filter << buffer_filter;
+  out_clean << buffer_clean;
 
   cout << "\nCheck the results in " << c.clean << "\n";
   cout << "Removed Sequences (" << count << ") in " << c.filter << "\n\n";
@@ -96,10 +132,9 @@ Config loadConfig(string filename) {
   c.blast_type = root["blast-type"].asString();
   c.format     = c.input.substr(c.input.find_last_of(".") + 1);
   c.fastq      = c.input;
+  c.input.erase(c.input.find_last_of("."));
   c.clean      = c.input  + ".nohits-" + c.blast_type + "-" + c.blast_db + "." + c.format;
   c.filter     = c.input + ".filter_pident-" + to_string(c.pident) + "_qcovs-" + to_string(c.qcovs) + "." + c.format;
-
-  c.input.erase(c.input.find_last_of("."));
 
   return c;
 }
