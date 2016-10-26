@@ -12,7 +12,6 @@
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
-#include <jsoncpp/json/json.h>
 
 #include "fast-cpp-csv-parser/csv.h"
 #include "cleanup_sequences_using_sequence.h"
@@ -73,7 +72,7 @@ int main(int argc,char **argv) {
     for (auto remove : to_remove) {
       if (f.sequence.find(remove) != std::string::npos)
       {
-        cout << "Found: " << remove << " in " << f.name << '\n';
+        // cout << "Found: " << remove << " in " << f.name << '\n';
         f.remove = true;
       }
     }
@@ -131,7 +130,7 @@ unordered_set<string> loadCSV(string csv_file) {
   while(csv.read_row(seq))
   {
     to_remove.insert(seq);
-    cout << "\nMarketd to remove Partial Sequence " << seq << "\n";
+    cout << "\nMarked to Remove: " << seq << "\n";
   }
 
   return to_remove;
