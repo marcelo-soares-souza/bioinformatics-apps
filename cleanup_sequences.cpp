@@ -10,7 +10,7 @@
 #include <tr1/unordered_set>
 
 #include <jsoncpp/json/json.h>
-#include "csv.h"
+#include "fast-cpp-csv-parser/csv.h"
 #include "cleanup_sequences.h"
 
 // const int THRESHOLD = 131072;
