@@ -125,7 +125,7 @@ unordered_set<string> loadCSV(string csv_file) {
   string seq;
   unordered_set<string> to_remove;
 
-  CSVReader<1, trim_chars<' '>, no_quote_escape<'\t'>, single_line_comment<'#'> > csv (csv_file);
+  CSVReader<1, trim_chars<' '>, no_quote_escape<'\t'>, single_line_comment<'#'>, empty_line_comment > csv (csv_file);
 
   while(csv.read_row(seq))
   {
