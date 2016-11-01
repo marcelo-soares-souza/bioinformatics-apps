@@ -5,6 +5,7 @@
 #include <string>
 #include <fstream>
 #include <cstdlib>
+#include <cstring>
 #include <sstream>
 #include <iterator>
 #include <tr1/unordered_set>
@@ -12,6 +13,8 @@
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
+
+#include <magic.h>
 
 #include "fast-cpp-csv-parser/csv.h"
 #include "cleanup_sequences_using_sequence.h"
@@ -23,7 +26,7 @@ int main(int argc,char **argv) {
 
   if (argc < 3)
   {
-    cout << "Usage: " << argv[0] << " [CSV FILE] [FASTQ GZ]" << "\n";
+    cout << "Usage: " << argv[0] << " [CSV FILE] [FASTQ/GZ]" << "\n";
 
     return EXIT_FAILURE;
   }
@@ -37,17 +40,18 @@ int main(int argc,char **argv) {
   FastQ f;
   unordered_set<string> to_remove = loadCSV(csv_file);
 
-  ifstream file(fastq_file, ios_base::in | ios_base::binary);
+  struct magic_set *magic = magic_open(MAGIC_MIME|MAGIC_CHECK);
+  magic_load(magic, NULL);
 
-  if(!file.is_open())
-  {
-    return EXIT_FAILURE;
-  }
-
+  // ifstream in_fastq(fastq_file, ios_base::in | ios_base::binary);
+  ifstream in_fastq(fastq_file, ios_base::in);
   boost::iostreams::filtering_streambuf<boost::iostreams::input> in_buf;
-  in_buf.push(boost::iostreams::gzip_decompressor());
-  in_buf.push(file);
-  istream in_fastq(&in_buf);
+
+  if (std::strcmp("application/gzip; charset=binary", magic_file(magic, argv[2])) == 0)
+    in_buf.push(boost::iostreams::gzip_decompressor());
+
+  in_buf.push(in_fastq);
+  istream in_data(&in_buf);
 
   ofstream out_clean(out_clean_file);
   ofstream out_filter(out_filter_file);
@@ -60,12 +64,12 @@ int main(int argc,char **argv) {
   std::string buffer_clean;
   buffer_clean.reserve(THRESHOLD);
 
-  while(!in_fastq.eof())
+  while(!in_data.eof())
   {
-    if (!getline(in_fastq, f.name,'\n')) break;
-    if (!getline(in_fastq, f.sequence,'\n')) break;
-    if (!getline(in_fastq, f.info,'\n')) break;
-    if (!getline(in_fastq, f.quality,'\n')) break;
+    if (!getline(in_data, f.name,'\n')) break;
+    if (!getline(in_data, f.sequence,'\n')) break;
+    if (!getline(in_data, f.info,'\n')) break;
+    if (!getline(in_data, f.quality,'\n')) break;
 
     f.remove = false;
 
@@ -116,7 +120,8 @@ int main(int argc,char **argv) {
 
   out_clean.close();
   out_filter.close();
-  file.close();
+
+  in_fastq.close();
 
   return EXIT_SUCCESS;
 }
