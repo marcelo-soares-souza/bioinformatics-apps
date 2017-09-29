@@ -9,6 +9,7 @@
 #include <sstream>
 #include <iterator>
 #include <tr1/unordered_set>
+#include <map>
 
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/copy.hpp>
@@ -17,7 +18,7 @@
 #include <magic.h>
 
 #include "fast-cpp-csv-parser/csv.h"
-#include "cleanup_sequences_using_sequence.h"
+#include "cleanup_sequences_using_sequence_mrna.h"
 
 const int THRESHOLD = 16777216;
 
@@ -37,11 +38,14 @@ int main(int argc,char **argv) {
   string type_file = argv[3];
   string out_clean_file = input_file  + ".cleaned.result";
   string out_filter_file = input_file  + ".filtered.result";
+  string new_sequence_name = "";
+
   FastQ f;
 
   cout << "\nUsing " << input_file << " in " << type_file << " and " << csv_file << "\n\nProcessing..." << "\n";
 
-  unordered_set<string> to_remove = loadCSV(csv_file);
+  // unordered_set<string> to_remove = loadCSV(csv_file);
+  map<string,string> to_remove = loadCSV(csv_file);
 
   struct magic_set *magic = magic_open(MAGIC_MIME|MAGIC_CHECK);
   magic_load(magic, NULL);
@@ -57,7 +61,6 @@ int main(int argc,char **argv) {
 
   ofstream out_clean(out_clean_file);
   ofstream out_filter(out_filter_file);
-
 
   std::string buffer_filter;
   buffer_filter.reserve(THRESHOLD);
@@ -78,10 +81,11 @@ int main(int argc,char **argv) {
     f.remove = false;
 
     for (auto remove : to_remove) {
-      if (f.sequence.find(remove) != std::string::npos)
+      if (f.sequence.find(remove.second) != std::string::npos)
       {
-        cout << "Found: " << remove <<  "(" << f.sequence << ")" << " in " << f.name << '\n';
+        cout << "Found: " << remove.second << " (" << remove.first << ") -> " <<  "(" << f.sequence << ")" << " in " << f.name << '\n';
         f.remove = true;
+        new_sequence_name = f.name + ":" + remove.first;
       }
     }
 
@@ -109,7 +113,8 @@ int main(int argc,char **argv) {
         buffer_filter.resize(0);
       }
 
-      buffer_filter.append(f.name + "\n");
+      // buffer_filter.append(f.name + "\n");
+      buffer_filter.append(new_sequence_name + "\n");
       buffer_filter.append(f.sequence + "\n");
 
       if (type_file == "fastq") {
@@ -136,18 +141,21 @@ int main(int argc,char **argv) {
   return EXIT_SUCCESS;
 }
 
-unordered_set<string> loadCSV(string csv_file) {
-  string seq;
-  unordered_set<string> to_remove;
 
-  CSVReader<1, trim_chars<' '>, no_quote_escape<'\t'>, single_line_comment<'#'>, empty_line_comment > csv (csv_file);
+// unordered_set<string> loadCSV(string csv_file) {
+map<string,string> loadCSV(string csv_file) {
+  // unordered_set<string> to_remove;
+  string header, seq;
+  map<string,string> to_remove;
+
+  CSVReader<2, trim_chars<' '>, no_quote_escape<';'>, single_line_comment<'#'>, empty_line_comment > csv (csv_file);
 
   cout << "Reading CSV: " << csv_file << endl;
 
-  while(csv.read_row(seq))
+  while(csv.read_row(header, seq))
   {
-    to_remove.insert(seq);
-    cout << "\nMarked to Remove: " << seq << "\n";
+    to_remove[header] = seq;
+    cout << "\nMarked to Remove: " << seq << "(" << header << ")" << "\n";
   }
 
   cout << "Total Size of Sequence List: " <<  to_remove.size() << "\n";
